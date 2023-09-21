@@ -1,0 +1,19 @@
+Projet 2 OpenClassrooms Web-scrapping
+
+Pour utiliser le projet telecharger l archive et dezipper la
+
+Création d'un environnement virtuel :
+
+allez dans le repertoire du projet et taper dans le terminak
+
+    python< -m venv env
+
+    env/bin/activate
+
+Installation des packages 
+
+    pip install -r requirements.txt
+
+## 3. Execution du script
+
+    python booktoscrap.py
