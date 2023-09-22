@@ -5,9 +5,9 @@ import csv #gestion des fichier csv
 import os  # gere les operations sur fichier et repertoire
 
 
-
+livres = []
 categorie=[]
-livres=[]
+
 # Créer un dictionnaire de correspondance chiffre en lettre , en chiffre
 chiffre_en_lettre = {
     "one": 1,
@@ -16,7 +16,7 @@ chiffre_en_lettre = {
     "four": 4,
     "five": 5
 }
-def sauvegarder_donnees_categorie(categorie, product_page_url, upc, page_title, price_incl_tax, price_excl_tax, availability, description, review_rating, image_url,chemin_image, nom_fichier_image,nom_fichier_image_final):    
+def sauvegarder_donnees_categorie(categorie, product_page_url, upc, page_title, price_incl_tax, price_excl_tax, availability, description, review_rating, image_url):    
      # Repertoire du fichier CSV
      csv_file_path = f'data/data_{categorie}.csv'
 
@@ -28,7 +28,7 @@ def sauvegarder_donnees_categorie(categorie, product_page_url, upc, page_title, 
      # Vérifiez si le fichier CSV existe, sinon, créez-le
      if not os.path.exists(csv_file_path):
        # Si le fichier n'existe pas, création et écrire les données
-      with open(csv_file_path, 'w', newline='', encoding="utf-8") as csv_file:
+      with open(csv_file_path, 'w', newline='', encoding="utf-8-sig") as csv_file:
         # definir objet writer CSV
         csv_writer = csv.writer(csv_file)
 
@@ -37,19 +37,9 @@ def sauvegarder_donnees_categorie(categorie, product_page_url, upc, page_title, 
 
         # Écrire les données dans le fichier CSV
         csv_writer.writerow(
-                    [product_page_url,upc,page_title,price_incl_tax,price_excl_tax,availability,description,category,review_rating,chemin_image])
-        
-        categorie_nettoye = re.sub(r'[^\w\s]', '', categorie)
-        categorie_nettoye = categorie_nettoye.replace(' ', '-')
-        path = os.path.join("data", categorie_nettoye)
-        if not os.path.exists(path):
-            os.makedirs(path)
-            path_image = os.path.join(path, nom_fichier_image_final)
-            with open(path_image, "wb") as file:
-                response = requests.get(chemin_image)
-                file.write(response.content)
+                    [product_page_url,upc,page_title,price_incl_tax,price_excl_tax,availability,description,category,review_rating,image_url])
      else:
-        with open(csv_file_path, 'a', newline='', encoding="utf-8") as csv_file:
+        with open(csv_file_path, 'a', newline='', encoding="utf-8-sig") as csv_file:
             csv_writer = csv.writer(csv_file)
             csv_writer.writerow([
                 product_page_url,
@@ -61,26 +51,8 @@ def sauvegarder_donnees_categorie(categorie, product_page_url, upc, page_title, 
                 description,
                 category,
                 review_rating,
-                chemin_image
-            ]) 
-        categorie_nettoye = re.sub(r'[^\w\s]', '', categorie)
-        categorie_nettoye = categorie_nettoye.replace(' ', '-')
-        path = os.path.join("data", categorie_nettoye)
-        
-        path_image = os.path.join(path, nom_fichier_image_final)
-        with open(path_image, "wb") as file:
-                response = requests.get(chemin_image)
-                file.write(response.content)
- 
-def nettoyer_nom_fichier(titre):
- # Remplacer tous les caractères non autorisés par des tirets
-    titre_nettoye = re.sub('[^a-zA-Z0-9 \n]', '-', titre)
-    
- # Limiter la longueur du nom de fichier à 255 caractères
-    titre_nettoye = titre_nettoye[:255]
-
-    return titre_nettoye
-               
+                image_url
+            ])   
 page_principal = "http://books.toscrape.com/"
 response=requests.get(page_principal)
 if response.ok:
@@ -96,11 +68,10 @@ if response.ok:
             lien_categorie = li.find('a')['href'].split('/')[3]
             text_categorie=lien_categorie.split("_")[0] # ne garde que le nom de la categorie
             categorie.append(lien_categorie)
-nombre_categorie=len(categorie)
-
+            nombre_categorie=len(categorie)
 for cat in range(nombre_categorie):
     product_page_url="http://books.toscrape.com/catalogue/category/books/"+categorie[cat]+"/index.html"
-   
+    
     response=requests.get(product_page_url)
     if response.ok:
         soup=BeautifulSoup(response.text,'html.parser')
@@ -136,9 +107,7 @@ for cat in range(nombre_categorie):
                           livres.append(url_livre)
                           #print(livres)
          print("liste url livre sur plusieurs  page fini pour : "+categorie[cat])
-    
     for product_page_url in livres:
-     
      response = requests.get(product_page_url)
      if response.ok:
         soup = BeautifulSoup(response.content, 'html.parser')
@@ -182,19 +151,11 @@ for cat in range(nombre_categorie):
      if product_gallery:
         image_src=product_gallery.find('img')
         image_url=image_src.get('src')
-        
         # Obtenir le nom du fichier image à partir de l'URL (en supprimant les parties de l'URL)
         nom_fichier_image = image_url.split('/')[-1]
         nettoi_url= image_url.replace("../../", "")
         chemin_image= "http://books.toscrape.com/" + nettoi_url
         image_url=chemin_image
-        nom_fichier_image_final=page_title
-        
-        nom_fichier_image_final=nettoyer_nom_fichier(nom_fichier_image_final)
-       
-        nom_fichier_image_final=nom_fichier_image_final+".jpg"
-       
-       
      if product_table:
         # Initialiser des variables pour stocker les valeurs des balises <th>
         upc = None
@@ -216,11 +177,11 @@ for cat in range(nombre_categorie):
                 if "UPC" in header_text:
                     upc = row.find('td').text
                 elif "Price (excl. tax)" in header_text:
-                    price_excl_tax_brut = row.find('td').text.strip()
-                    price_excl_tax =  price_excl_tax_brut.replace("Â", "") #nettoie la chaine de caractere
+                    price_excl_tax = row.find('td').text
+                  
                 elif "Price (incl. tax)" in header_text:
-                    price_incl_tax_brut = row.find('td').text.strip()
-                    price_incl_tax=price_incl_tax_brut.replace("Â", "")
+                    price_incl_tax = row.find('td').text
+                   
                 elif "Availability" in header_text:
                     cherche = row.find('td').text
                     # Utilisez une expression régulière pour rechercher un ou plusieurs chiffres dans la chaîne
@@ -231,6 +192,7 @@ for cat in range(nombre_categorie):
                     else:
                      nombre_disponible=0
                     availability=nombre_disponible
+                
         
          # Afficher les valeurs extraites
         # print(f"Product_page_url : {product_page_url}")
@@ -245,10 +207,9 @@ for cat in range(nombre_categorie):
         # print(f"image_url : {image_url}") 
   
     
-     sauvegarder_donnees_categorie(category, product_page_url, upc, page_title, price_incl_tax, price_excl_tax, availability, description, review_rating, image_url,chemin_image, nom_fichier_image,nom_fichier_image_final)
-    print("enregistrement donnees des livre de la categorie fait ")
+     sauvegarder_donnees_categorie(category, product_page_url, upc, page_title, price_incl_tax, price_excl_tax, availability, description, review_rating, image_url)
+    #print("enregistrement donnees des livre de la categorie fait ")
     livres = [] # on vide la liste des livres 
-    
 else:
     print("La requête a échoué. Vérifiez l'URL ou gérez l'erreur ici.")   
 
