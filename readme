@@ -17,3 +17,6 @@ Installation des packages
 ## 3. Execution du script
 
     python booktoscrap.py
+
+les données extraite seront dans des fichiers csv avec le nom de la categorie  dans un dossier DATA
+Les images des livres sont stocker dans DATA et un repertoire au nom de la categorie contient toutes les images des livres de cette categorie .Le nom des images est le titre du livre
