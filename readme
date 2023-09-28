@@ -4,7 +4,7 @@ Pour utiliser le projet telecharger l archive et dezipper la
 
 Création d'un environnement virtuel :
 
-allez dans le repertoire du projet et taper dans le terminak
+allez dans le repertoire du projet et taper dans le terminal
 
     python< -m venv env
 
