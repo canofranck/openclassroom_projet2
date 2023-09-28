@@ -6,9 +6,11 @@ Création d'un environnement virtuel :
 
 allez dans le repertoire du projet et taper dans le terminal
 
-    python< -m venv env
+    python -m venv env
 
-    env/bin/activate
+    puis depuis l emplacement du projet  env/scripts/Activate.ps1 
+
+    ceci crée l environnement et l active
 
 Installation des packages 
 
