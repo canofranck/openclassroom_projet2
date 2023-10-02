@@ -5,7 +5,7 @@ from bs4 import BeautifulSoup
 import csv
 import os
 import time
-
+import sys
 # Définition de la fonction pour nettoyer un nom de fichier
 def nettoyer_nom_fichier(titre):
  # Remplacer tous les caractères non autorisés par des tirets
@@ -262,19 +262,26 @@ def save_data_to_csv( book_data):
         print(f"Une erreur s'est produite lors de la sauvegarde des données : {e}")
            
 # Fonction principale pour exécuter l'ensemble du pipeline ETL
-print("Début de l'extraction des catégories")
-base_url = "http://books.toscrape.com/"
-categories = extract_categories(base_url)
-start_time = time.time()
-for category in categories:
-     
-     category_url = base_url + "catalogue/category/books/" + category + "/index.html"
-     books = extract_books_in_category(category_url)
+def main ():
+    print(sys.argv)
+    print("Début de l'extraction des catégories")
+    base_url = "http://books.toscrape.com/"
+    categories = extract_categories(base_url)
+    start_time = time.time()
+    for category in categories:
+        
+        category_url = base_url + "catalogue/category/books/" + category + "/index.html"
+        books = extract_books_in_category(category_url)
 
-     for book_url in books:
-         book_data = extract_book_data(book_url)
-         save_data_to_csv( book_data)
-end_time = time.time()  # Enregistrez le temps à la fin de la boucle
-elapsed_time = end_time - start_time  # Calculez le temps écoulé
-print(f"Extraction et sauvegarde des données terminées en : {elapsed_time} secondes")
-
+        for book_url in books:
+            book_data = extract_book_data(book_url)
+            save_data_to_csv( book_data)
+    end_time = time.time()  # Enregistrez le temps à la fin de la boucle
+    elapsed_time = end_time - start_time  # Calculez le temps écoulé
+    print(f"Extraction et sauvegarde des données terminées en : {elapsed_time} secondes")
+if __name__ == '__main__':
+    
+    try:
+        main()
+    except KeyboardInterrupt:
+        print("Arret du programme")
