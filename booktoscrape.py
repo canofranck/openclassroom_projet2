@@ -5,15 +5,10 @@ from bs4 import BeautifulSoup
 import csv
 import os
 import time
-
-# Définition de la fonction pour nettoyer un nom de fichier
-def nettoyer_nom_fichier(titre):
- # Remplacer tous les caractères non autorisés par des tirets
-    titre_nettoye = re.sub('[^a-zA-Z0-9 \n]', '-', titre)
- # Limiter la longueur du nom de fichier à 255 caractères
-    titre_nettoye = titre_nettoye[:255]
-    return titre_nettoye
-
+import sys
+# =================
+# Partie EXTRACTION
+# =================
 # Fonction pour extraire les catégories depuis la page d'accueil
 def extract_categories(base_url):
     categories = []
@@ -165,6 +160,18 @@ def extract_book_data(book_url):
         
     return book_data
 
+# =====================
+# Partie TRANSFORMATION
+# =====================
+
+# Définition de la fonction pour nettoyer un nom de fichier
+def nettoyer_nom_fichier(titre):
+ # Remplacer tous les caractères non autorisés par des tirets
+    titre_nettoye = re.sub('[^a-zA-Z0-9 \n]', '-', titre)
+ # Limiter la longueur du nom de fichier à 255 caractères
+    titre_nettoye = titre_nettoye[:255]
+    return titre_nettoye
+
 def clean_data(book_url, upc, page_title, price_incl_tax, price_excl_tax, availability, description,category,
             review_rating, image_url):
     # Créer un dictionnaire de correspondance chiffre en lettre , en chiffre
@@ -193,7 +200,7 @@ def clean_data(book_url, upc, page_title, price_incl_tax, price_excl_tax, availa
     # Générer le nom final du fichier image en utilisant le titre nettoyé
     nom_fichier_image_final = page_title
     nom_fichier_image_final = nettoyer_nom_fichier(nom_fichier_image_final)
-    nom_fichier_image_final = nom_fichier_image_final + ".jpg"
+    nom_fichier_image_final = nom_fichier_image_final +"_"+ nom_fichier_image+".jpg"
     
     
      # Utilisez une expression régulière pour rechercher un ou plusieurs chiffres dans la chaîne
@@ -211,8 +218,12 @@ def clean_data(book_url, upc, page_title, price_incl_tax, price_excl_tax, availa
      )  
     return book_data
 
+# ============
+# Partie LOAD 
+# ============
+
 # Fonction pour sauvegarder les données dans un fichier CSV
-def save_data_to_csv( book_data):
+def save_data_to_csv( book_data,image):
     try:
      csv_file_path = os.path.join('data', f'data_{book_data[7]}.csv')
      # Vérifiez si le répertoire "data" existe, sinon, on le crée
@@ -227,15 +238,16 @@ def save_data_to_csv( book_data):
             csv_file.write("product_page_url,universal_product_code,title,price_including_tax,price_excluding_tax,number_available,product_description,category,review_rating,image_url\n")
 
      # Répertoire pour les images
-     if book_data[9]:  # Vérifiez si image_url n'est pas vide
-        image_url = book_data[9]
-        path = os.path.join('data', book_data[7])
-        if not os.path.exists(path):
+     if image == True:
+        if book_data[9]:  # Vérifiez si image_url n'est pas vide
+         image_url = book_data[9]
+         path = os.path.join('data', book_data[7])
+         if not os.path.exists(path):
             os.makedirs(path)
-        path_image = os.path.join(path, book_data[10])  # Utilisez l'indice 11 pour le nom du fichier image
+         path_image = os.path.join(path, book_data[10])  # Utilisez l'indice 11 pour le nom du fichier image
         
-        # Vérifiez si le fichier image existe déjà, si oui, ne le téléchargez pas à nouveau
-        if not os.path.exists(path_image):
+         # Vérifiez si le fichier image existe déjà, si oui, ne le téléchargez pas à nouveau
+         if not os.path.exists(path_image):
             response = requests.get(image_url)
             if response.status_code == 200:
                 with open(path_image, "wb") as file:
@@ -260,21 +272,94 @@ def save_data_to_csv( book_data):
        # print(f"Données pour {book_data[2]} enregistrées dans {csv_file_path}")
     except Exception as e:
         print(f"Une erreur s'est produite lors de la sauvegarde des données : {e}")
-           
+
+# =================
+# Partie MENU
+# =================        
 # Fonction principale pour exécuter l'ensemble du pipeline ETL
-print("Début de l'extraction des catégories")
-base_url = "http://books.toscrape.com/"
-categories = extract_categories(base_url)
-start_time = time.time()
-for category in categories:
-     
-     category_url = base_url + "catalogue/category/books/" + category + "/index.html"
+def main ():
+    print(sys.argv)
+    base_url = "http://books.toscrape.com/"
+    while True:
+     print("\nMenu :")
+     print("1. Extraire toutes les catégories avec les images")
+     print("2. Extraire une catégorie spécifique avec les images")
+     print("3. Extraire toutes les catégories SANS les images")
+     print("4. Extraire une catégorie spécifique SANS les images")
+     print("5. Quitter")
+     choice = input("Choisissez une option : ")
+     categories = extract_categories(base_url)
+     image=True
+     if choice == "1":
+        extract_all(categories,image)
+     elif choice == "2":
+        categorie_selectionnee =choix_categorie(categories)
+        extract_one(categorie_selectionnee,image)
+     elif choice == "3":
+         image=False
+         extract_all(categories,image)
+     elif choice == "4":
+         image=False
+         categorie_selectionnee =choix_categorie(categories)
+         extract_one(categorie_selectionnee,image)
+     elif choice == "5":
+        print("Au revoir !")
+        break
+     else:
+      print("Option invalide. Veuillez choisir une option valide.")
+      
+# menu choix de la categorie a extraire
+def choix_categorie(categories):
+        for i, category in enumerate(categories, start=1):
+         print(f"{i}. {category}")
+        categorie_selectionnee = None  # Initialisez la variable à None pour entrer dans la boucle
+        while True:
+         try:
+            choix = input("Entrez le numéro de la catégorie que vous souhaitez extraire : ")
+            choix=int(choix)
+            if 1 <= choix <= len(categories):
+                categorie_selectionnee = categories[choix - 1]
+                print(f"Vous avez choisi d'extraire la catégorie : {categorie_selectionnee}")
+                print(categorie_selectionnee)
+                return categorie_selectionnee
+            else:
+                print("Numéro de catégorie invalide.")
+         except ValueError:
+            print("Veuillez entrer un numéro valide.")
+
+# extraction toutes categories
+def extract_all(categories,image):    
+ print("Début de l'extraction des catégories")
+ base_url = "http://books.toscrape.com/"
+ start_time = time.time()
+ for category in categories:
+        category_url = base_url + "catalogue/category/books/" + category + "/index.html"
+        books = extract_books_in_category(category_url)
+        for book_url in books:
+            book_data = extract_book_data(book_url)
+            save_data_to_csv( book_data,image)
+ end_time = time.time()  # Enregistrez le temps à la fin de la boucle
+ elapsed_time = end_time - start_time  # Calculez le temps écoulé
+ print(f"Extraction et sauvegarde des données terminées en : {elapsed_time} secondes")
+
+# extraction pour une categorie   
+def extract_one(categories,image):
+     start_time = time.time()
+     base_url = "http://books.toscrape.com/"
+     category_url = base_url + "catalogue/category/books/" + categories + "/index.html"
      books = extract_books_in_category(category_url)
 
      for book_url in books:
-         book_data = extract_book_data(book_url)
-         save_data_to_csv( book_data)
-end_time = time.time()  # Enregistrez le temps à la fin de la boucle
-elapsed_time = end_time - start_time  # Calculez le temps écoulé
-print(f"Extraction et sauvegarde des données terminées en : {elapsed_time} secondes")
-
+            book_data = extract_book_data(book_url)
+            save_data_to_csv( book_data,image)
+     end_time = time.time()  # Enregistrez le temps à la fin de la boucle
+     elapsed_time = end_time - start_time  # Calculez le temps écoulé
+     print(f"Extraction et sauvegarde des données terminées en : {elapsed_time} secondes") 
+     
+# Programme principal
+if __name__ == '__main__':
+    
+    try:
+        main()
+    except KeyboardInterrupt:
+        print("Arret du programme")
