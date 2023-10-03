@@ -6,5 +6,4 @@
 # Ignorer le répertoire "data"
 /data/
 
-# Ignorer le répertoire de l'environnement virtuel
-/env/
+
